@@ -172,6 +172,11 @@ function Shop.update(dt, game)
                      add("luck")
                      add("multi")
                      add("auxSpeed")
+
+                     -- Hotfix: Inject Energy if missing (from old save)
+                     if not game.upgrades["energy"] then
+                         game.upgrades["energy"] = {id="energy", name="Power Supply", level=0, baseCost=20, costMult=1.4, desc="Increases Max Energy (+10)"}
+                     end
                      add("energy")
                      
                      -- Hotfix: Inject AutoSpin if missing (from old save)
@@ -384,6 +389,12 @@ function Shop.draw(game)
                  add("multi")
                  add("auxSpeed")
                  
+                 -- Hotfix: Inject Energy if missing (from old save)
+                 if not game.upgrades["energy"] then
+                     game.upgrades["energy"] = {id="energy", name="Power Supply", level=0, baseCost=20, costMult=1.4, desc="Increases Max Energy (+10)"}
+                 end
+                 add("energy")
+
                  -- Hotfix: Inject AutoSpin if missing
                  if not game.upgrades["autoSpin"] then
                      game.upgrades["autoSpin"] = {id="autoSpin", name="Hand of a Gambler", level=0, baseCost=100, costMult=2.5, desc="Auto-Spin Main Roulette"}

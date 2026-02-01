@@ -1198,6 +1198,11 @@ function recalcStats()
     
     -- 2. Apply upgrades from Shop (Replacing Nodes)
     if game.upgrades then
+        -- Hotfix: Ensure Energy Upgrade Exists (Safety for old saves)
+        if not game.upgrades.energy then
+            game.upgrades.energy = {id="energy", name="Power Supply", level=0, baseCost=20, costMult=1.4, desc="Increases Max Energy (+10)"}
+        end
+
         local u = game.upgrades
         
         -- SPEED: Increases Speed, Reduces Duration, Reduces Cooldown
