@@ -1044,9 +1044,10 @@ function processClockResults(game, res, srcType, srcObj)
                 cw.infoText = "x2!"
                 spawnPopup("x2", cw.x, cw.y - 50, colors.highlight, true, 0)
             elseif cw.activeNumber == res then
-                results.bonusGold = results.bonusGold + 1
-                cw.infoText = "+1"
-                spawnPopup("+1", cw.x, cw.y - 50, colors.ui_gold, true, 0)
+                local reward = 10 * (game.sevenBaseValue or 1) * (game.globalPayoutMult or 1.0)
+                results.bonusGold = results.bonusGold + reward
+                cw.infoText = "+" .. math.floor(reward)
+                spawnPopup("+" .. math.floor(reward), cw.x, cw.y - 50, colors.ui_gold, true, 0)
             end
         end
     end
@@ -1079,7 +1080,8 @@ function checkWin(res)
              currentComboMult = 1.0 + (game.comboMultBonus * (game.combo - 1))
         end
         
-        local gain = (base * totalMultiplier * currentComboMult)
+        -- Apply Global Payout Mult here as well
+        local gain = (base * totalMultiplier * currentComboMult * (game.globalPayoutMult or 1.0))
         game.gold = game.gold + gain
         mainWin = gain
         
@@ -1194,6 +1196,7 @@ function recalcStats()
     
     -- Combo Bonus Base
     game.comboMultBonus = 0.0
+    game.globalPayoutMult = 1.0 -- NEW: Global Mult Base
     
     -- Luck Base
     game.luckyLevel = 1
@@ -1217,9 +1220,12 @@ function recalcStats()
         game.luckyLevel = game.luckyLevel + u.luck.level
         
         -- MULTIPLIER: Additive Bonus
-        if game.comboMultLevel then -- Keep legacy check or remove?
-             game.comboMultBonus = game.comboMultBonus + (u.multi.level * 0.25)
-        end
+        -- Changed from ComboBonus to Global Multiplier
+        game.globalPayoutMult = game.globalPayoutMult + (u.multi.level * 0.25)
+
+        -- Keep legacy ComboMult logic just in case? Or rely on global mult?
+        -- Upgrades description says "Global Multiplier". Let's assume user wants general power.
+        -- But let's ALSO give a small boost to combo? No, keeps it simple.
         
         -- AUX SPEED (Clocks/Plinko)
         -- We will apply this via game.auxSpeedMult which modifies synced speed.

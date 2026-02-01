@@ -6,7 +6,7 @@ local UpgradeNode = require("src.nodes.UpgradeNode")
 local Shop = {
     tabs = {
         {id="upgrades", name="UPGRADES", iconPath="assets/IconsShop/nodeicon.png"}, -- Reuse icon or placeholder
-        {id="modules", name="MODULES", iconPath="assets/IconsShop/rollicon.png"}
+        {id="modules", name="ROULETTES", iconPath="assets/IconsShop/rollicon.png"}
     },
     activeTab = 1,
     hoverTab = nil,
@@ -34,12 +34,37 @@ local modules = {
     buy_gate_delay = {id="buy_gate_delay", name="DELAY Gate", price=30, icon="gate", desc="Delays signal by 1 turn", gateType="DELAY"}
 }
 
+local function getModulePrice(game, id)
+    local m = modules[id]
+    if not m then return 0 end
+
+    local count = 0
+    if id == "buy_clock" then
+        count = #game.clockWheels
+        return math.floor(m.price * math.pow(1.5, count))
+    elseif id == "buy_plinko" then
+        count = #game.plinkoBoards
+        return math.floor(m.price * math.pow(2.0, count))
+    elseif string.find(id, "buy_gate") then
+        -- Count Logic Gates
+        for _, mod in ipairs(game.modules) do
+            if mod.type == "logic_gate" and mod.gateType == m.gateType then
+                count = count + 1
+            end
+        end
+        return math.floor(m.price * math.pow(1.2, count))
+    end
+    return m.price
+end
+
 local function buyItem(game, id)
     -- 1. Try Buying Modules (Tab 2)
     local module = modules[id] -- Direct match
     
     if module then
-        if game.gold >= module.price then
+        local cost = getModulePrice(game, id)
+
+        if game.gold >= cost then
             local pType = "clock"
             if module.id == "buy_plinko" then pType = "plinko"
             elseif string.find(module.id, "buy_gate") then pType = "logic_gate" end
@@ -48,7 +73,7 @@ local function buyItem(game, id)
                 active = true,
                 type = pType,
                 gateType = module.gateType,
-                cost = module.price,
+                cost = cost,
                 name = module.name,
                 item = module
             }
@@ -451,7 +476,7 @@ function Shop.draw(game)
                      -- Show Value Change? e.g. "1.0x -> 1.05x"
                      -- Simplify: Just "Lvl X" and Description
                  else
-                     price = item.price
+                     price = getModulePrice(game, item.id)
                      desc = item.name
                  end
                  

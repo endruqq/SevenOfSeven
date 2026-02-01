@@ -111,6 +111,11 @@ function LogicGate:receiveSignal(val, source, slotIndex)
     local idx = slotIndex or 1
     self.inputs[idx] = val
 
+    -- Generate Data Resource
+    if game and game.data then
+        game.data = game.data + 1
+    end
+
     -- Propagate immediately? Or next update?
     -- Immediate for combinatorial logic
     self:update(0, nil)
