@@ -71,6 +71,7 @@ game = {
     rollCost = 0, -- FREE ROLL
     combo = 0,
     essence = 0, 
+    energy = { max = 10, used = 0 },
     
     wheel = nil, -- Deprecated? Or mapped to MainRoulette.wheel?
     mainRoulette = nil, -- The Module instance
@@ -203,7 +204,8 @@ game = {
         luck = {id="luck", name="Luck", level=0, baseCost=15, costMult=1.6, desc="Increases Crit Chance"},
         multi = {id="multi", name="Multiplier", level=0, baseCost=50, costMult=2.0, desc="Global Multiplier (+0.25x)"},
         auxSpeed = {id="auxSpeed", name="Aux Speed", level=0, baseCost=20, costMult=1.4, desc="Clock/Plinko Speed (+5%)"},
-        autoSpin = {id="autoSpin", name="Hand of a Gambler", level=0, baseCost=100, costMult=2.5, desc="Auto-Spin Main Roulette"}
+        autoSpin = {id="autoSpin", name="Hand of a Gambler", level=0, baseCost=100, costMult=2.5, desc="Auto-Spin Main Roulette"},
+        energy = {id="energy", name="Power Supply", level=0, baseCost=20, costMult=1.4, desc="Increases Max Energy (+10)"}
     }
 }
 
@@ -1178,6 +1180,9 @@ function buyClock()
 end
 
 function recalcStats()
+    -- Migration / Init
+    if not game.energy then game.energy = { max = 10, used = 0 } end
+
     game.tokensPerSecond = 0 -- Passive Income DISABLED
     -- 1. Reset Base Stats (Standardize to 1.0, ignore legacy Skill Tree levels for stats)
     -- Skill Tree now only used for unlocking specific items/mechanics (like Clocks)
@@ -1212,6 +1217,9 @@ function recalcStats()
         -- AUX SPEED (Clocks/Plinko)
         -- We will apply this via game.auxSpeedMult which modifies synced speed.
         game.auxSpeedMult = math.pow(1.05, u.auxSpeed.level)
+
+        -- ENERGY: Base 10 + 10 per level
+        game.energy.max = 10 + (u.energy.level * 10)
     end
     
     -- REMOVED: Node Connection Logic (UpgradeNode, ArtifactNode)
@@ -1219,16 +1227,19 @@ function recalcStats()
     game.wheel.artifactSlotEnabled = false -- Temporarily disabled until Artifact Upgrade is added
 
     
-    -- 3. Calculate Roll Cost (Scaling)
+    -- 3. Calculate Roll Cost (Scaling) & Energy Usage
     -- Base: 5
     -- Doubles for every CONNECTED Clock Wheel (Main -> Clock)
     -- count clocks connected to main
     local connectedClocks = 0
+    game.energy.used = 0
+
     for _, cw in ipairs(game.clockWheels) do
         -- Count ANY clock that has an input connection (is part of the system)
         -- We trust 'cw.connected' flag which is set when a wire is attached to it
         if cw.connected then
             connectedClocks = connectedClocks + 1
+            game.energy.used = game.energy.used + 1 -- Each connected clock uses 1 Energy
         end
     end
     
@@ -2138,6 +2149,10 @@ function drawGame()
     -- Shift Essence down to avoid overlap
     drawResourcePill(20, 150, "ESSENCE", game.essence, {0.8, 0.3, 0.9}, "sparkle", 0.8)
     
+    -- Energy Pill
+    local eTxt = game.energy.used .. "/" .. game.energy.max
+    drawResourcePill(20, 210, "ENERGY", eTxt, {0.2, 0.8, 1.0}, "diamond", 0.8)
+
     -- SKILLS BUTTON Removed (Moved to Shop Tabs) 
     
     -- Console Input (Screen Space)
@@ -2481,6 +2496,13 @@ function love.mousepressed(x, y, button)
                              local isBlocked = checkWireObstacles(game, start.x, start.y, o.x, o.y, start.parent, o.parent)
                              
                              if validTopology and target and not isBlocked then
+                                 -- Energy Check
+                                 if (game.energy.used + 1) > game.energy.max then
+                                     if spawnPopup then spawnPopup("Not Enough Energy!", o.x, o.y - 40, {1, 0.2, 0.2}, true, 0) end
+                                     game.wiring = nil
+                                     return
+                                 end
+
                                  target.connected = true
                                  
                                  -- Initialize connections list if needed

@@ -51,20 +51,31 @@ end
 
 function ClockWheel:draw(game)
     local r = 90
-    local fw, fh = 50, 50
+    local fw, fh = 60, 60 -- Slightly larger frame
     local frameX = self.x
     local frameY = self.y - r
+
+    -- 1. Center Hub
+    local cx, cy = self.x, self.y
+    local indR = 30
+
+    -- Hub Shadow
+    love.graphics.setColor(0.1, 0.1, 0.1, 0.5)
+    love.graphics.circle("fill", cx, cy + 4, indR)
+
+    -- Hub Body (Dark Hexagon)
+    love.graphics.setColor(0.15, 0.15, 0.2)
+    love.graphics.circle("fill", cx, cy, indR)
+
+    -- Hub Highlight/Ring
+    love.graphics.setColor(colors.highlight)
     love.graphics.setLineWidth(3)
-    if self.phase == "RESULT" then
-        if (love.timer.getTime() % 0.2) < 0.1 then
-             love.graphics.setColor(colors.ui_gold)
-        else
-             love.graphics.setColor(colors.highlight)
-        end
-    else
-        love.graphics.setColor(colors.frame_base)
-    end
-    love.graphics.rectangle("line", frameX - fw/2, frameY - fh/2, fw, fh, 10, 10)
+    love.graphics.circle("line", cx, cy, indR)
+
+    -- Inner Dot
+    love.graphics.circle("fill", cx, cy, 6)
+
+    -- 2. Numbers
     local count = #self.numbers
     local angleStep = (math.pi * 2) / count
     
@@ -73,40 +84,82 @@ function ClockWheel:draw(game)
         local angle = self.angle + (i-1) * angleStep - (math.pi/2) 
         local nx = self.x + math.cos(angle) * r
         local ny = self.y + math.sin(angle) * r
+
+        -- Text Shadow
+        love.graphics.setColor(0, 0, 0, 0.5)
+        love.graphics.print(n, nx - fontBtn:getWidth(n)/2 + 2, ny - fontBtn:getHeight(n)/2 + 2)
+
+        -- Text Color
         love.graphics.setColor(colors.text)
         if n == 7 then love.graphics.setColor(colors.highlight) end
+
+        -- Highlight Active Number if passing through top?
+        -- No, frame determines it.
+
         local tw = fontBtn:getWidth(n)
         local th = fontBtn:getHeight()
         love.graphics.print(n, nx - tw/2, ny - th/2)
     end
+
+    -- 3. Selection Frame (Top)
+    local color
+    if self.phase == "RESULT" then
+        if (love.timer.getTime() % 0.2) < 0.1 then
+             color = colors.ui_gold
+        else
+             color = colors.highlight
+        end
+    else
+        color = colors.frame_base
+    end
+
+    local verts = utils.getOctagonVertices(frameX, frameY, fw, fh, 15)
+
+    -- Frame Background
+    love.graphics.setColor(0.1, 0.1, 0.12, 0.9)
+    love.graphics.polygon("fill", verts)
+
+    -- Frame Outline
+    love.graphics.setColor(color)
+    love.graphics.setLineWidth(3)
+    love.graphics.polygon("line", verts)
+    -- Dashed overlay?
+    love.graphics.setColor(1, 1, 1, 0.3)
+    utils.drawDashedLine(verts[1], verts[2], verts[3], verts[4], 5, 5) -- Top Edge accent
+
+    -- Info Text
     local infoText = self.infoText or ""
     if infoText ~= "" and self.phase == "RESULT" then
         love.graphics.setFont(fontUI)
         local ttw = fontUI:getWidth(infoText)
         local tth = fontUI:getHeight()
+
+        -- Draw with background
+        love.graphics.setColor(0, 0, 0, 0.7)
+        local bx = self.x - ttw/2 - 5
+        local by = self.y - tth/2 - 5
+        love.graphics.rectangle("fill", bx, by, ttw + 10, tth + 10, 5)
+
+        love.graphics.setColor(colors.ui_gold)
         love.graphics.print(infoText, self.x - ttw/2, self.y - tth/2)
     end
-    local cx, cy = self.x, self.y
-    local indR = 40 
-    love.graphics.setColor(colors.highlight)
-    love.graphics.circle("fill", cx, cy, indR)
     
-    -- Draw Sockets: REMOVED (Only Main Roulette has Upgrade Sockets)
-    -- Signal Outlets are virtual/drawn by main.lua or implied by wires.
+    -- Draw Sockets: REMOVED
 end
-
-
 
 function ClockWheel:drawGhost(x, y)
     local r = 90
-    local fw, fh = 50, 50
+    local fw, fh = 60, 60
     local frameX = x
     local frameY = y - r
     
-    love.graphics.setLineWidth(3)
-    love.graphics.setColor(colors.frame_base[1], colors.frame_base[2], colors.frame_base[3], 0.5)
-    love.graphics.rectangle("line", frameX - fw/2, frameY - fh/2, fw, fh, 10, 10)
+    -- Hub
+    local cx, cy = x, y
+    local indR = 30
+    love.graphics.setColor(colors.highlight[1], colors.highlight[2], colors.highlight[3], 0.3)
+    love.graphics.circle("line", cx, cy, indR)
     
+    -- Numbers
     local count = #self.numbers
     local angleStep = (math.pi * 2) / count
     
@@ -121,10 +174,10 @@ function ClockWheel:drawGhost(x, y)
         love.graphics.print(n, nx - tw/2, ny - th/2)
     end
     
-    local cx, cy = x, y
-    local indR = 40 
-    love.graphics.setColor(colors.highlight[1], colors.highlight[2], colors.highlight[3], 0.5)
-    love.graphics.circle("fill", cx, cy, indR)
+    -- Frame
+    local verts = utils.getOctagonVertices(frameX, frameY, fw, fh, 15)
+    love.graphics.setColor(colors.frame_base[1], colors.frame_base[2], colors.frame_base[3], 0.5)
+    love.graphics.polygon("line", verts)
 end
 
 function ClockWheel:update(dt, game)

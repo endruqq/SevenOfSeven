@@ -172,6 +172,7 @@ function Shop.update(dt, game)
                      add("luck")
                      add("multi")
                      add("auxSpeed")
+                     add("energy")
                      
                      -- Hotfix: Inject AutoSpin if missing (from old save)
                      if not game.upgrades["autoSpin"] then
@@ -528,6 +529,9 @@ function Shop.draw(game)
                      elseif u.id == "auxSpeed" then
                          cur = string.format("%.2fx", math.pow(1.05, u.level))
                          nextVal = string.format("%.2fx", math.pow(1.05, u.level + 1))
+                     elseif u.id == "energy" then
+                         cur = tostring(10 + (u.level * 10))
+                         nextVal = tostring(10 + ((u.level + 1) * 10))
                      elseif u.id == "autoSpin" then
                          cur = (u.level > 0) and "Active" or "Inactive"
                          nextVal = "Active"
