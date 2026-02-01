@@ -23,10 +23,6 @@ This document outlines the strategic plan to triple the content of *SevenOfSeven
     *   **Dice Roller:** Fast, low-payout module. Useful for generating frequent "noise" signals to trigger other machines.
     *   **Card Table (Blackjack):** A mini-game played automatically by "Dealer Bot" modules.
 
-*   **New Mechanics:**
-    *   **House Edge:** A dynamic difficulty meter that rises as you win too much, reducing global luck.
-    *   **Bribes:** Spend Gold to lower the House Edge temporarily.
-
 ## Phase 3: The Power Update (Resource Depth)
 **Goal:** Replace the flat "1 Energy per Wheel" system with a dynamic Power Grid.
 
@@ -49,7 +45,7 @@ This document outlines the strategic plan to triple the content of *SevenOfSeven
 
 *   **New System: Challenges**
     *   Start a new run with restrictions (e.g., "No Main Roulette", "Only Logic Gates").
-    *   Reward: Unlocks unique Artifacts or Skins.
+    *   Reward: Unlocks unique Artifacts.
 
 *   **Ascension:**
     *   A second layer of prestige that resets Artifacts but unlocks "Cheats" or "Dev Mode" features in a legitimate way.
@@ -57,4 +53,3 @@ This document outlines the strategic plan to triple the content of *SevenOfSeven
 ## Phase 5: Visual & UI Overhaul
 *   **Blueprint Mode:** A flat 2D view for easier wiring of complex logic grids.
 *   **Statistics Screen:** Graphs showing Income/s, Signal Density, and Luck distribution.
-*   **Themes:** Unlockable skins (Neon, Steampunk, Wood) that change the look of all modules.
