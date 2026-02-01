@@ -26,7 +26,9 @@ local Shop = {
 
 -- Module Definitions (Sold in Tab 2)
 local modules = {
-    buy_clock = {id="buy_clock", name="Clock Roulette", price=50, icon="clock", desc="Place a new Clock"},
+    buy_clock_1 = {id="buy_clock_1", name="Copper Roulette", price=50, icon="clock", desc="Standard Clock (1x Rewards)", tier=1},
+    buy_clock_2 = {id="buy_clock_2", name="Silver Roulette", price=500, icon="clock", desc="Advanced Clock (5x Rewards)", tier=2},
+    buy_clock_3 = {id="buy_clock_3", name="Gold Roulette", price=5000, icon="clock", desc="Elite Clock (25x Rewards)", tier=3},
     buy_plinko = {id="buy_plinko", name="Plinko Board", price=100, icon="plinko", desc="Place a new Plinko Board"},
     buy_gate_and = {id="buy_gate_and", name="AND Gate", price=20, icon="gate", desc="Outputs signal if both inputs are active", gateType="AND"},
     buy_gate_or = {id="buy_gate_or", name="OR Gate", price=20, icon="gate", desc="Outputs signal if any input is active", gateType="OR"},
@@ -39,7 +41,7 @@ local function getModulePrice(game, id)
     if not m then return 0 end
 
     local count = 0
-    if id == "buy_clock" then
+    if string.find(id, "buy_clock") then
         count = #game.clockWheels
         return math.floor(m.price * math.pow(1.5, count))
     elseif id == "buy_plinko" then
@@ -220,7 +222,9 @@ function Shop.update(dt, game)
                      add("autoSpin")
                  end
              elseif Shop.activeTab == 2 then
-                 table.insert(list, modules.buy_clock)
+                 table.insert(list, modules.buy_clock_1)
+                 table.insert(list, modules.buy_clock_2)
+                 table.insert(list, modules.buy_clock_3)
                  table.insert(list, modules.buy_plinko)
                  table.insert(list, modules.buy_gate_and)
                  table.insert(list, modules.buy_gate_or)
@@ -441,7 +445,9 @@ function Shop.draw(game)
              end
          elseif Shop.activeTab == 2 then 
              -- MODULES (Use Correct Keys!)
-             table.insert(list, modules.buy_clock)
+                 table.insert(list, modules.buy_clock_1)
+                 table.insert(list, modules.buy_clock_2)
+                 table.insert(list, modules.buy_clock_3)
              table.insert(list, modules.buy_plinko)
          end
          

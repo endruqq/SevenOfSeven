@@ -1044,7 +1044,8 @@ function processClockResults(game, res, srcType, srcObj)
                 cw.infoText = "x2!"
                 spawnPopup("x2", cw.x, cw.y - 50, colors.highlight, true, 0)
             elseif cw.activeNumber == res then
-                local reward = 10 * (game.sevenBaseValue or 1) * (game.globalPayoutMult or 1.0)
+                local tierMult = cw.tierMult or 1.0
+                local reward = 10 * (game.sevenBaseValue or 1) * (game.globalPayoutMult or 1.0) * tierMult
                 results.bonusGold = results.bonusGold + reward
                 cw.infoText = "+" .. math.floor(reward)
                 spawnPopup("+" .. math.floor(reward), cw.x, cw.y - 50, colors.ui_gold, true, 0)
@@ -1706,7 +1707,7 @@ function drawGame()
              -- But it uses 'self.numbers'.
              -- Let's create a dummy object in placementMode to use.
              if not game.placementMode.dummy then
-                 game.placementMode.dummy = ClockWheel.new(0,0)
+                 game.placementMode.dummy = ClockWheel.new(0, 0, game.placementMode.tier)
              end
              game.placementMode.dummy:drawGhost(mx, my)
              
@@ -2372,7 +2373,7 @@ function love.mousepressed(x, y, button)
                     
                     -- Instantiate
                     if game.placementMode.type == "clock" then
-                        local newClock = ClockWheel.new(wx, wy)
+                        local newClock = ClockWheel.new(wx, wy, game.placementMode.tier)
                         table.insert(game.clockWheels, newClock)
                         table.insert(game.modules, newClock)
                         -- Trigger "Buy" sound?

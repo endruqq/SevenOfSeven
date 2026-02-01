@@ -11,7 +11,7 @@ local V_HEIGHT = constants.V_HEIGHT
 local colors = constants.colors
 local lerp = utils.lerp
 
-function ClockWheel.new(x, y)
+function ClockWheel.new(x, y, tier)
     local self = setmetatable({}, ClockWheel)
     self.type = "clock" -- Explicit type for SignalSystem detection
     self.id = tostring(self) -- Unique ID for SignalSystem
@@ -38,7 +38,11 @@ function ClockWheel.new(x, y)
     self.signalQueue = {} -- NEW: Queue for sequential spins
     self.speedMult = 1.0 -- Global speed sync modifier
     
-    self.speedMult = 1.0 -- Global speed sync modifier
+    -- Tier Stats
+    self.tier = tier or 1
+    self.tierMult = 1.0
+    if self.tier == 2 then self.tierMult = 5.0
+    elseif self.tier == 3 then self.tierMult = 25.0 end
     
     -- No Sockets for Upgrade Nodes (Only Main Roulette has those)
     -- Signal connections use getClockOutlets() in main.lua which defines cardinal outlets.
@@ -110,7 +114,11 @@ function ClockWheel:draw(game)
              color = colors.highlight
         end
     else
-        color = colors.frame_base
+        -- Tier Colors
+        if self.tier == 1 then color = {0.6, 0.4, 0.3} -- Copper
+        elseif self.tier == 2 then color = {0.8, 0.8, 0.9} -- Silver
+        elseif self.tier == 3 then color = {1.0, 0.85, 0.2} -- Gold
+        else color = colors.frame_base end
     end
 
     local verts = utils.getOctagonVertices(frameX, frameY, fw, fh, 15)
