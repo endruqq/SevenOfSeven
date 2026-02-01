@@ -197,7 +197,19 @@ end
 function SignalSystem.resolve(sig)
     local target = sig.target
     if target.onSignal then
-        target:onSignal(sig.payload, sig.source)
+        -- Logic Gates may return a new payload or a list of new signals to broadcast
+        local result = target:onSignal(sig.payload, sig.source)
+
+        -- Support for Logic Gates re-broadcasting
+        if result then
+            -- If result is a table with 'propagate' key, it means we continue the chain
+            if type(result) == "table" and result.propagate then
+                SignalSystem.broadcast(target, result.payload or sig.payload)
+            elseif result == true then
+                -- Simple propagation of original signal
+                SignalSystem.broadcast(target, sig.payload)
+            end
+        end
     end
     
     if SignalSystem.game and SignalSystem.game.particles then
