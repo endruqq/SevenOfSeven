@@ -27,7 +27,11 @@ local Shop = {
 -- Module Definitions (Sold in Tab 2)
 local modules = {
     buy_clock = {id="buy_clock", name="Clock Roulette", price=50, icon="clock", desc="Place a new Clock"},
-    buy_plinko = {id="buy_plinko", name="Plinko Board", price=100, icon="plinko", desc="Place a new Plinko Board"}
+    buy_plinko = {id="buy_plinko", name="Plinko Board", price=100, icon="plinko", desc="Place a new Plinko Board"},
+    buy_gate_and = {id="buy_gate_and", name="AND Gate", price=20, icon="gate", desc="Outputs signal if both inputs are active", gateType="AND"},
+    buy_gate_or = {id="buy_gate_or", name="OR Gate", price=20, icon="gate", desc="Outputs signal if any input is active", gateType="OR"},
+    buy_gate_not = {id="buy_gate_not", name="NOT Gate", price=20, icon="gate", desc="Inverts signal", gateType="NOT"},
+    buy_gate_delay = {id="buy_gate_delay", name="DELAY Gate", price=30, icon="gate", desc="Delays signal by 1 turn", gateType="DELAY"}
 }
 
 local function buyItem(game, id)
@@ -36,9 +40,14 @@ local function buyItem(game, id)
     
     if module then
         if game.gold >= module.price then
+            local pType = "clock"
+            if module.id == "buy_plinko" then pType = "plinko"
+            elseif string.find(module.id, "buy_gate") then pType = "logic_gate" end
+
             game.placementMode = {
                 active = true,
-                type = (module.id == "buy_plinko" and "plinko" or "clock"),
+                type = pType,
+                gateType = module.gateType,
                 cost = module.price,
                 name = module.name,
                 item = module
@@ -188,6 +197,10 @@ function Shop.update(dt, game)
              elseif Shop.activeTab == 2 then
                  table.insert(list, modules.buy_clock)
                  table.insert(list, modules.buy_plinko)
+                 table.insert(list, modules.buy_gate_and)
+                 table.insert(list, modules.buy_gate_or)
+                 table.insert(list, modules.buy_gate_not)
+                 table.insert(list, modules.buy_gate_delay)
              end
              
              local panelKw = s.targetWidth - margin*2
@@ -594,6 +607,8 @@ function Shop.draw(game)
                          love.graphics.circle("line", ix + 30, iconY + 20, 15)
                      elseif item.icon == "plinko" then
                           love.graphics.rectangle("line", ix + 15, iconY + 5, 30, 30)
+                     elseif item.icon == "gate" then
+                          love.graphics.polygon("line", ix+20, iconY+5, ix+40, iconY+20, ix+20, iconY+35)
                      end
                      
                      love.graphics.setFont(fontUI)

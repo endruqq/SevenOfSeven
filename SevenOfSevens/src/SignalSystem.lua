@@ -68,6 +68,8 @@ function SignalSystem.broadcast(source, payload)
                     connected = true
                 elseif data.srcType == "clock" and (source == data.clockSource or (source.id and data.clockSource and source.id == data.clockSource.id)) then -- Clock to Clock (Generic)
                     connected = true
+                elseif data.srcType == "logic_gate" and source == data.clockSource then
+                    connected = true
                 end
                 
                 if connected then
@@ -100,16 +102,38 @@ function SignalSystem.broadcast(source, payload)
             for _, data in ipairs(wireList) do
                 local connected = false
                 
-                if data.srcType == "main" and source.label == "MAIN ROULETTE" then
+                if data.srcType == "main" and (source.type == "main" or source == game.mainRoulette) then
                     connected = true
                 elseif data.srcType == "clock" and source == data.clockSource then -- Connected to a Clock
                     connected = true
                 elseif data.srcType == "plinko" and source == data.clockSource then -- Connected to another Plinko
                     connected = true
+                elseif data.srcType == "logic_gate" and source == data.clockSource then
+                    connected = true
                 end
                 
                 if connected then
                      SignalSystem.spawnSignal(source, p, data.srcIndex, data.tgtIndex, payload)
+                end
+            end
+        end
+    end
+
+    -- Check Logic Gates (Input target)
+    if game.modules then
+        for _, mod in ipairs(game.modules) do
+            if mod.type == "logic_gate" and mod.connections then
+                for _, data in ipairs(mod.connections) do
+                    local connected = false
+                    if data.srcType == "main" and (source.type == "main" or source == game.mainRoulette) then
+                        connected = true
+                    elseif data.clockSource == source then
+                        connected = true
+                    end
+
+                    if connected then
+                        SignalSystem.spawnSignal(source, mod, data.srcIndex, data.tgtIndex, payload)
+                    end
                 end
             end
         end
@@ -135,6 +159,14 @@ function SignalSystem.getOutputInfo(mod, index)
         if index == 1 then x=mod.x-mod.w/2-20; y=mod.y+mod.h/2; nx=-1; ny=0 -- Left
         elseif index == 2 then x=mod.x+mod.w/2+20; y=mod.y+mod.h/2; nx=1; ny=0 -- Right
         elseif index == 3 then x=mod.x; y=mod.y+mod.h+20; nx=0; ny=1 end -- Bottom
+    elseif mod.type == "logic_gate" then
+        if mod.outlets and mod.outlets[index] then
+            local o = mod.outlets[index]
+            x = mod.x + o.x
+            y = mod.y + o.y
+            nx = o.normal.x
+            ny = o.normal.y
+        end
     end
     return x, y, {x=nx, y=ny}
 end
@@ -210,6 +242,9 @@ function SignalSystem.resolve(sig)
                 SignalSystem.broadcast(target, sig.payload)
             end
         end
+    elseif target.receiveSignal then
+        -- Alternate API (used by LogicGate.lua)
+        target:receiveSignal(sig.payload, sig.source, sig.tgtIndex)
     end
     
     if SignalSystem.game and SignalSystem.game.particles then

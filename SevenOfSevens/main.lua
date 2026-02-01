@@ -16,6 +16,7 @@ local PrestigeManager = require("src.PrestigeManager") -- NEW: Prestige System
 local UpgradeNode = require("src.nodes.UpgradeNode")
 local ArtifactNode = require("src.nodes.ArtifactNode")
 local QuestManager = require("src.QuestManager") -- NEW: Quest System
+local LogicGate = require("src.modules.LogicGate") -- NEW: Logic Gates
 
 -- CONSTANTS ALIASES
 local V_WIDTH = constants.V_WIDTH
@@ -71,6 +72,7 @@ game = {
     rollCost = 0, -- FREE ROLL
     combo = 0,
     essence = 0, 
+    data = 0, -- NEW: Data Resource
     energy = { max = 10, used = 0 },
     
     wheel = nil, -- Deprecated? Or mapped to MainRoulette.wheel?
@@ -1476,6 +1478,16 @@ function updateGame(dt)
         game.draggingNode = nil
     end
 
+    if game.draggingGate and love.mouse.isDown(1) then
+        local wx, wy = getMouseWorldCoords()
+        if game.draggingGate.dragOffset then
+             game.draggingGate.x = wx - game.draggingGate.dragOffset.x
+             game.draggingGate.y = wy - game.draggingGate.dragOffset.y
+        end
+    elseif game.draggingGate and not love.mouse.isDown(1) then
+        game.draggingGate = nil
+    end
+
     -- Validate Connections Real-time
     for _, cw in ipairs(game.clockWheels) do
         if cw.connected and cw.connectionData then
@@ -1722,6 +1734,20 @@ function drawGame()
              love.graphics.setFont(fontBtn)
              love.graphics.setColor(colors.ui_gold)
              love.graphics.print("-"..game.placementMode.cost.." G", mx + 30, my - 30)
+
+        elseif game.placementMode.type == "logic_gate" then
+             if not game.placementMode.dummy then
+                 game.placementMode.dummy = LogicGate.new(0, 0, game.placementMode.gateType)
+             end
+             game.placementMode.dummy.x = mx
+             game.placementMode.dummy.y = my
+
+             love.graphics.setColor(1, 1, 1, 0.5)
+             game.placementMode.dummy:draw(game)
+
+             love.graphics.setFont(fontBtn)
+             love.graphics.setColor(colors.ui_gold)
+             love.graphics.print("-"..game.placementMode.cost.." G", mx + 30, my - 30)
         end
     end
     
@@ -1836,6 +1862,51 @@ function drawGame()
         end
     end
     
+    -- Draw Logic Gate Connections
+    for _, mod in ipairs(game.modules) do
+        if mod.type == "logic_gate" and mod.connections then
+            for _, data in ipairs(mod.connections) do
+                 -- Source Logic (Similar to Plinko)
+                 local srcPos = {x=0, y=0}
+                 local tgtPos = {x=mod.x, y=mod.y} -- Fallback
+
+                 -- If we have specific target socket info (Input socket of Gate)
+                 if data.tgtIndex and mod.sockets and mod.sockets[data.tgtIndex] then
+                     local s = mod.sockets[data.tgtIndex]
+                     tgtPos = {x = mod.x + s.x, y = mod.y + s.y}
+                 end
+
+                 if data.srcType == "main" then
+                      local mainOutlets = getMainOutlets()
+                      if mainOutlets[data.srcIndex] then srcPos = mainOutlets[data.srcIndex] end
+                 elseif data.srcType == "clock" and data.clockSource then
+                      local co = getClockOutlets(data.clockSource)
+                      if co[data.srcIndex] then srcPos = co[data.srcIndex] end
+                 elseif data.srcType == "plinko" and data.clockSource then
+                      local po = getPlinkoOutlets(data.clockSource)
+                      for _, o in ipairs(po) do
+                          if o.index == data.srcIndex then srcPos = o break end
+                      end
+                 elseif data.srcType == "logic_gate" and data.clockSource then
+                      -- From another Gate's Outlet
+                      local srcMod = data.clockSource
+                      if srcMod.outlets and srcMod.outlets[data.srcIndex] then
+                          local o = srcMod.outlets[data.srcIndex]
+                          srcPos = {x = srcMod.x + o.x, y = srcMod.y + o.y}
+                      end
+                 end
+
+                 -- Wire Color
+                 local color = {0.5, 0.5, 0.5, 0.5}
+                 if SignalSystem.isWireActive(data.clockSource or game.mainRoulette, mod) then
+                     color = {colors.highlight[1], colors.highlight[2], colors.highlight[3], 1}
+                 end
+
+                 drawChevronPath(srcPos.x, srcPos.y, tgtPos.x, tgtPos.y, color)
+            end
+        end
+    end
+
     -- Draw Plinko Wire
     SignalSystem.draw() -- NEW: Draw Signals passing through wires
     
@@ -2158,6 +2229,9 @@ function drawGame()
     local eTxt = game.energy.used .. "/" .. game.energy.max
     drawResourcePill(20, 210, "ENERGY", eTxt, {0.2, 0.8, 1.0}, "diamond", 0.8)
 
+    -- Data Pill
+    drawResourcePill(20, 270, "DATA", game.data, {0.2, 1.0, 0.4}, "sparkle", 0.8)
+
     -- SKILLS BUTTON Removed (Moved to Shop Tabs) 
     
     -- Console Input (Screen Space)
@@ -2306,6 +2380,9 @@ function love.mousepressed(x, y, button)
                     elseif game.placementMode.type == "artifact_node" then
                         local newNode = ArtifactNode.new(wx, wy)
                         table.insert(game.nodes, newNode)
+                    elseif game.placementMode.type == "logic_gate" then
+                        local newGate = LogicGate.new(wx, wy, game.placementMode.gateType)
+                        table.insert(game.modules, newGate) -- Add to modules list for update/draw/signals
                     end
                     
                     -- Clear Mode (Trigger "Place" sound)
@@ -2385,6 +2462,34 @@ function love.mousepressed(x, y, button)
                     end
                 end
                 
+                -- Add Logic Gate Outlets & Sockets
+                for _, mod in ipairs(game.modules) do
+                    if mod.type == "logic_gate" then
+                        -- Outlets
+                        if mod.outlets then
+                            for _, o in ipairs(mod.outlets) do
+                                table.insert(outlets, {
+                                    x = mod.x + o.x, y = mod.y + o.y,
+                                    type = "logic_gate", index = o.index,
+                                    parent = mod, obj = mod,
+                                    isOutput = true
+                                })
+                            end
+                        end
+                        -- Sockets (Inputs)
+                        if mod.sockets then
+                            for _, s in ipairs(mod.sockets) do
+                                table.insert(outlets, {
+                                    x = mod.x + s.x, y = mod.y + s.y,
+                                    type = "logic_gate", index = s.index,
+                                    parent = mod, obj = mod,
+                                    isInput = true
+                                })
+                            end
+                        end
+                    end
+                end
+
                 -- Check Node Sockets (Start Wiring)
                 for _, node in ipairs(game.nodes) do
                      local socketInfo = node:getSocketAt(wx, wy)
@@ -2587,6 +2692,15 @@ function love.mousepressed(x, y, button)
                              return
                          end
                      end
+
+                     -- Check Logic Gates
+                     for _, mod in ipairs(game.modules) do
+                         if mod.type == "logic_gate" and mod.hits and mod:hits(wx, wy) then
+                             game.draggingGate = mod
+                             mod.dragOffset = {x = wx - mod.x, y = wy - mod.y}
+                             return
+                         end
+                     end
                 end
                 
                 -- Check Node Wiring Completion
@@ -2673,7 +2787,17 @@ function love.mousepressed(x, y, button)
                     end
                 end
                 
-                -- 4. Check Node Dragging
+                -- 4. Check Logic Gate Dragging
+                for _, mod in ipairs(game.modules) do
+                    if mod.type == "logic_gate" and mod.hits and mod:hits(wx, wy) then
+                        game.draggingGate = mod
+                        mod.dragOffset = {x = wx - mod.x, y = wy - mod.y}
+                        if game.wiring then game.wiring = nil end
+                        return
+                    end
+                end
+
+                -- 5. Check Node Dragging
                 for _, node in ipairs(game.nodes) do
                      if node:hits(wx, wy) then
                          game.draggingNode = node
@@ -2827,6 +2951,7 @@ function love.mousereleased(x, y, button)
         game.draggingClock = nil
         game.draggingPlinko = nil
         game.draggingNode = nil
+        game.draggingGate = nil
     elseif button == 2 then
         game.camera.dragging = false
     end
