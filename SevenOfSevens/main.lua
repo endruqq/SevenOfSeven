@@ -1044,8 +1044,7 @@ function processClockResults(game, res, srcType, srcObj)
                 cw.infoText = "x2!"
                 spawnPopup("x2", cw.x, cw.y - 50, colors.highlight, true, 0)
             elseif cw.activeNumber == res then
-                local tierMult = cw.tierMult or 1.0
-                local reward = 10 * (game.sevenBaseValue or 1) * (game.globalPayoutMult or 1.0) * tierMult
+                local reward = 10 * (game.sevenBaseValue or 1) * (game.globalPayoutMult or 1.0)
                 results.bonusGold = results.bonusGold + reward
                 cw.infoText = "+" .. math.floor(reward)
                 spawnPopup("+" .. math.floor(reward), cw.x, cw.y - 50, colors.ui_gold, true, 0)
@@ -1559,20 +1558,24 @@ function updateGame(dt)
              
              -- Handle Plinko Result
              if pb.startResult == 7 and slot == 7 then
-                 -- JACKPOT MULTIPLIER
+                 -- JACKPOT MULTIPLIER (7 -> 7)
                  -- Apply Clock Multiplier to the entire bonus
-                 local baseBonus = game.lastWinAmount * 9 
+                 -- Buffed Payout: 50x (Previously 9x)
+                 local baseBonus = game.lastWinAmount * 50 * (game.globalPayoutMult or 1.0)
                  local totalBonus = baseBonus * clockRes.multiplier
                  game.gold = game.gold + totalBonus
-                  spawnPopup("x10!", pb.x, pb.y, colors.highlight, true, 0)
+                  spawnPopup("x50!", pb.x, pb.y, colors.highlight, true, 0)
                  if clockRes.multiplier > 1 then
-                     spawnPopup("x" .. (10 * clockRes.multiplier) .. " COMBO!", pb.x, pb.y - 40, colors.highlight, true, 0.1)
+                     spawnPopup("x" .. (50 * clockRes.multiplier) .. " COMBO!", pb.x, pb.y - 40, colors.highlight, true, 0.1)
                  end
                  spawnPopup("+" .. math.floor(totalBonus), V_WIDTH/2, V_HEIGHT/2 - 150, colors.ui_gold, true, 0.2)
              elseif slot == pb.startResult then
-                  local bonus = 10 + clockRes.bonusGold -- Base 10 for match + clock bonuses
+                  -- Match (X -> X)
+                  -- Buffed Payout: 100 Base * Multipliers (Previously 10)
+                  local plinkoBase = 100 * (game.sevenBaseValue or 1) * (game.globalPayoutMult or 1.0)
+                  local bonus = plinkoBase + clockRes.bonusGold
                   game.gold = game.gold + bonus
-                  spawnPopup("Match! +" .. bonus, pb.x, pb.y, colors.ui_gold, true, 0)
+                  spawnPopup("Match! +" .. math.floor(bonus), pb.x, pb.y, colors.ui_gold, true, 0)
              elseif clockRes.bonusGold > 0 then
                   -- Give only bonus gold if clock matched but plinko didn't match startResult
                   game.gold = game.gold + clockRes.bonusGold
@@ -1707,7 +1710,7 @@ function drawGame()
              -- But it uses 'self.numbers'.
              -- Let's create a dummy object in placementMode to use.
              if not game.placementMode.dummy then
-                 game.placementMode.dummy = ClockWheel.new(0, 0, game.placementMode.tier)
+                 game.placementMode.dummy = ClockWheel.new(0, 0)
              end
              game.placementMode.dummy:drawGhost(mx, my)
              
@@ -2373,7 +2376,7 @@ function love.mousepressed(x, y, button)
                     
                     -- Instantiate
                     if game.placementMode.type == "clock" then
-                        local newClock = ClockWheel.new(wx, wy, game.placementMode.tier)
+                        local newClock = ClockWheel.new(wx, wy)
                         table.insert(game.clockWheels, newClock)
                         table.insert(game.modules, newClock)
                         -- Trigger "Buy" sound?
