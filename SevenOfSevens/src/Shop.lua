@@ -443,6 +443,10 @@ function Shop.draw(game)
              -- MODULES (Use Correct Keys!)
              table.insert(list, modules.buy_clock)
              table.insert(list, modules.buy_plinko)
+             table.insert(list, modules.buy_gate_and)
+             table.insert(list, modules.buy_gate_or)
+             table.insert(list, modules.buy_gate_not)
+             table.insert(list, modules.buy_gate_delay)
          end
          
          local panelKw = s.targetWidth - margin*2
